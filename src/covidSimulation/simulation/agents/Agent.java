@@ -9,33 +9,66 @@ import util.Util;
 
 public class Agent
 {
-
+	// general
+	private int id;
+	public static int numberOfAgents;
 
 	// render
-	public static final float SIZE = 3;
+	public static final float SIZE = 7;
 
 	// movment
+	// -- random walk
 	public static final float MAX_SPEED = 0.5f;
-	public static final float ACCELERATION = 0.03f;
+	public static final float ACCELERATION = MAX_SPEED / 10.0f;
 	private PVector position;
 	private PVector velocity;
+	// -- move to center
+	private boolean goingToCenter;
+	public static final float GO_TO_CENTER_CHANCE = 0.00002f;
+	public static final boolean CAN_GO_TO_CENTER = true;
 
 	// condition
-	public static final float INFECTION_RADIUS = 5;
-	public static final int INCUBATION_PERIOD = 1000; // number of update until infecteous
+	public static final float INFECTION_RADIUS = 10;
+	public static final int INCUBATION_PERIOD = 800; // number of update until infecteous
+	public static final int SHOW_SYMPTOMS = 1000;
+	public static final int RECOVERY_TIME = 1500; // number of updates until the agent is not sick anymore
+	public static final float BASIC_CHANCE_OF_INFECTION = 0.026f;
+	public static final float RESISTANCE_CHANGE = 0.00001f * 0;
+	public static final int ONE_OUT_OF_WONT_HAVE_SYMPTOMES = 10;
+	public static final float RANDOM_SICK_CHANCE = 0.00001f;
+
 	private boolean sick;
 	private int sickDays; // number of days this agent was sick
+	private float resistance;
+	private boolean inIsolation;
+
+	// contact tracing
+	public static final boolean CAN_BE_CONTACT_TRACED = true;
+	public static final int NUMBER_OF_UPDATES_FOR_ISOLATION = 1;
+
+	// stats
+	private int currentR;
+	private float predictedR;
+	private float realR;
+	private int interactions;
 
 
 	public Agent(boolean isSick, int boxWidth, int boxHeight)
 	{
+		// general
+		this.setId(Agent.numberOfAgents);
+		Agent.numberOfAgents++;
+
 		// movement
 		this.setPosition(new PVector(Util.randomInRange(0, boxWidth), Util.randomInRange(0, boxHeight)));
 		this.setVelocity(PVector.random2D().mult(Agent.MAX_SPEED));
 
 		// condition
 		this.setSick(isSick);
-		this.setSickDays(0);
+
+		// contact tracing
+		// this.setContactTracing(new HashMap<Integer, Integer>());
+
 	}
 
 	public boolean isInfectious()
@@ -43,31 +76,154 @@ public class Agent
 		return (this.isSick() && this.getSickDays() > Agent.INCUBATION_PERIOD);
 	}
 
-	public void update(int boxWidth, int boxHeight, ArrayList<Agent> infectiousAgents)
+	public void update(ArrayList<Agent> infectiousAgents, int boxWidth, int boxHeight, float percentSick)
 	{
-		this.updateInfections(infectiousAgents);
-		this.move();
-		this.stayInsideBox(boxWidth, boxHeight);
+		this.updateInfections(infectiousAgents, percentSick);
+		this.updateResistance();
+		this.updateIsolation();
+
+		this.move(boxWidth, boxHeight);
 	}
 
-	private void updateInfections(ArrayList<Agent> infectiousAgents)
+	/**
+	 * handle agent movement
+	 */
+	private void move(int boxWidth, int boxHeight)
 	{
-		if (!this.isSick()) // if the agents is not sick - it can get sick
+		if (this.isGoingToCenter())
 		{
-			for (Agent agent : infectiousAgents)
+			this.goToPosition(new PVector(550, 550));
+		}
+		else
+		{
+			this.randomWalk();
+			this.stayInsideBox(boxWidth, boxHeight);
+			
+			if (Agent.CAN_GO_TO_CENTER)
 			{
-				if (this.position.dist(agent.getPosition()) < Agent.INFECTION_RADIUS)
+				if (Math.random() < Agent.GO_TO_CENTER_CHANCE)
 				{
-					this.setSick(true);
-					break;
+					this.setGoingToCenter(true);
 				}
 			}
 		}
+	}
 
-		if (this.isSick())
+
+	/**
+	 * 
+	 * @param agents - the list of all the agents
+	 * @return - the number of times this agent was near another agent - note: each
+	 *         interaction is counted two times, each agent count the interaction
+	 */
+	public int countNumberOfInteractions(ArrayList<Agent> agents)
+	{
+		int count = 0;
+		for (Agent other : agents)
+		{
+			if (this != other)
+			{
+				if (this.position.dist(other.getPosition()) <= Agent.INFECTION_RADIUS)
+				{
+					count++;
+				}
+			}
+		}
+		return count;
+	}
+
+	public void postUpdate()
+	{
+		if (this.isSick()) // if the agents is sick
+		{
+			this.setPredictedR(this.calculatePredictedR());
+			this.setRealR(this.calculateRealR());
+		}
+	}
+
+	private float calculateRealR()
+	{
+		// return this.getPersonalR()
+		return (this.getCurrentR() + this.getPredictedR()) / 2.0f;
+	}
+
+	private void updateIsolation()
+	{
+		if (this.isSick() && this.getSickDays() > Agent.SHOW_SYMPTOMS
+				&& this.getId() % Agent.ONE_OUT_OF_WONT_HAVE_SYMPTOMES != 0)
+		{
+			this.setInIsolation(true);
+		}
+	}
+
+	public void updateInfections(ArrayList<Agent> infectiousAgents, float percentSick)
+	{
+		if (this.isSick()) // if the agents is sick
 		{
 			this.sickDays++;
+
+			if (this.getSickDays() >= Agent.RECOVERY_TIME)
+			{
+				this.recover();
+			}
 		}
+		else // if the agents is not sick - it can get sick
+		{
+			//list of the IDs of the other agents, this agent was in range of 
+			for (Agent otherAgent : infectiousAgents)
+			{
+				// check if it was close to an infectious agent
+				if (this.position.dist(otherAgent.getPosition()) < Agent.INFECTION_RADIUS)
+				{
+					// try to get sick
+					if (Math.random() < (Agent.BASIC_CHANCE_OF_INFECTION))
+					{
+						if (Math.random() > this.getResistance())
+						{
+							this.setSick(true);
+							otherAgent.increaseCurrentR();
+							break;
+						}
+					}
+				}
+			}
+
+			if (Math.random() < Agent.RANDOM_SICK_CHANCE /* * percentSick */)
+			{
+				this.setSick(true);
+			}
+		}
+	}
+
+	private void updateResistance()
+	{
+		this.resistance += Agent.RESISTANCE_CHANGE;
+
+		if (this.getResistance() > 1)
+		{
+			this.setResistance(1);
+		}
+	}
+
+	private float calculatePredictedR()
+	{
+		if (this.getSickDays() == 0)
+		{
+			return 0;
+		}
+		return (float) this.getCurrentR() * (Agent.RECOVERY_TIME - Agent.INCUBATION_PERIOD)
+				/ (this.getSickDays() - Agent.INCUBATION_PERIOD);
+	}
+
+	/**
+	 * this method is called when an agent is revored from covid
+	 */
+	private void recover()
+	{
+		this.setSick(false);
+		this.setSickDays(0);
+		this.setCurrentR(0);
+		this.setInIsolation(false);
 	}
 
 	private void stayInsideBox(int boxWidth, int boxHeight)
@@ -91,7 +247,7 @@ public class Agent
 		}
 	}
 
-	private void move()
+	private void randomWalk()
 	{
 		PVector acceleration = PVector.random2D();
 		acceleration.mult(Agent.ACCELERATION);
@@ -100,14 +256,37 @@ public class Agent
 		this.position.add(velocity);
 	}
 
+	/**
+	 * move toward the position
+	 * 
+	 * @param targetPos - the position it moves toward
+	 */
+	private void goToPosition(PVector targetPos)
+	{
+		PVector step = PVector.sub(targetPos, this.getPosition());
+
+		if (step.mag() >= Agent.MAX_SPEED)
+		{
+			step.setMag(Agent.MAX_SPEED);
+			this.position.add(step);
+		}
+		else
+		{
+			this.setGoingToCenter(false);
+		}
+	}
+
 	public void render(PGraphics pg)
 	{
 		this.setDisplayStyle(pg);
-		pg.circle(this.position.x, this.position.y, Agent.SIZE);
-		if (this.isInfectious())
+		if (!this.inIsolation)
 		{
-			pg.noFill();
-			pg.circle(this.position.x, this.position.y, 2 * Agent.INFECTION_RADIUS);
+			pg.circle(this.position.x, this.position.y, Agent.SIZE);
+			if (this.isInfectious())
+			{
+				pg.noFill();
+				pg.circle(this.position.x, this.position.y, 2 * Agent.INFECTION_RADIUS);
+			}
 		}
 	}
 
@@ -120,7 +299,15 @@ public class Agent
 
 		if (this.isSick())
 		{
-			c = Colors.AGENT_COLOR_SICK;
+			if (this.getId() % Agent.ONE_OUT_OF_WONT_HAVE_SYMPTOMES == 0)
+			{
+				c = Colors.AGENT_COLOR_NO_SYMPTOMES;
+
+			}
+			else
+			{
+				c = Colors.AGENT_COLOR_SICK;
+			}
 		}
 		else
 		{
@@ -171,5 +358,90 @@ public class Agent
 	public void setSickDays(int sickDays)
 	{
 		this.sickDays = sickDays;
+	}
+
+	public int getCurrentR()
+	{
+		return currentR;
+	}
+
+	public void setCurrentR(int personalR)
+	{
+		this.currentR = personalR;
+	}
+
+	public void increaseCurrentR()
+	{
+		this.currentR++;
+	}
+
+	public float getPredictedR()
+	{
+		return predictedR;
+	}
+
+	public void setPredictedR(float predictedR)
+	{
+		this.predictedR = predictedR;
+	}
+
+	public float getRealR()
+	{
+		return realR;
+	}
+
+	public void setRealR(float realR)
+	{
+		this.realR = realR;
+	}
+
+	public int getInteractions()
+	{
+		return interactions;
+	}
+
+	public void setInteractions(int interactions)
+	{
+		this.interactions = interactions;
+	}
+
+	public float getResistance()
+	{
+		return resistance;
+	}
+
+	public void setResistance(float resistance)
+	{
+		this.resistance = resistance;
+	}
+
+	public boolean isInIsolation()
+	{
+		return inIsolation;
+	}
+
+	public void setInIsolation(boolean inIsolation)
+	{
+		this.inIsolation = inIsolation;
+	}
+
+	public int getId()
+	{
+		return id;
+	}
+
+	public void setId(int id)
+	{
+		this.id = id;
+	}
+
+	public boolean isGoingToCenter()
+	{
+		return goingToCenter;
+	}
+
+	public void setGoingToCenter(boolean goingToCenter)
+	{
+		this.goingToCenter = goingToCenter;
 	}
 }
