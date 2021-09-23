@@ -68,7 +68,7 @@ public class SimulationBox
 		for (int i = 0; i < agents.size(); i++)
 		{
 			Agent agent = agents.get(i);
-			agent.postUpdate();
+			agent.postUpdate(this);
 		}
 		this.setPredictedR(this.calculatePredictedR(infectiousAgents));
 
@@ -94,7 +94,7 @@ public class SimulationBox
 		for (int i = 0; i < agents.size(); i++)
 		{
 			Agent agent = agents.get(i);
-			agent.update(infectiousAgents, this.getRenderBox().width, this.getRenderBox().height,
+			agent.update(this.getAgents(), infectiousAgents, this.getRenderBox().width, this.getRenderBox().height,
 					this.getPercentSick());
 		}
 
@@ -114,6 +114,19 @@ public class SimulationBox
 
 		this.update(infectiousAgents);
 		this.postUpdate(infectiousAgents);
+	}
+
+	/**
+	 * 
+	 * @param closeConatctAgents - a list got from a sick agents of his close
+	 *                           contacts
+	 */
+	public void needToGoToIsolation(ArrayList<Integer> closeConatctAgentsIds)
+	{
+		for(int id : closeConatctAgentsIds)
+		{
+			this.getAgents().get(id).reportCloseContact();
+		}
 	}
 
 	private float calculatePredictedR(ArrayList<Agent> infectiousAgents)
