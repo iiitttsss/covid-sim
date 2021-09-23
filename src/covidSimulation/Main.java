@@ -52,7 +52,7 @@ public class Main extends PApplet
 
 	private void update()
 	{
-		for (int i = 0; i < 1; i++)
+		for (int i = 0; i < 2; i++)
 		{
 			sim.updateMove();
 			// sim.updateRoom();

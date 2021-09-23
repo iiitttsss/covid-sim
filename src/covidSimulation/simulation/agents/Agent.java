@@ -1,8 +1,10 @@
 package covidSimulation.simulation.agents;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 import covidSimulation.Colors;
+import covidSimulation.simulation.SimulationBox;
 import processing.core.PGraphics;
 import processing.core.PVector;
 import util.Util;
@@ -25,7 +27,7 @@ public class Agent
 	// -- move to center
 	private boolean goingToCenter;
 	public static final float GO_TO_CENTER_CHANCE = 0.00002f;
-	public static final boolean CAN_GO_TO_CENTER = true;
+	public static final boolean UNABLE_GO_TO_CENTER = true;
 
 	// condition
 	public static final float INFECTION_RADIUS = 10;
@@ -33,18 +35,26 @@ public class Agent
 	public static final int SHOW_SYMPTOMS = 1000;
 	public static final int RECOVERY_TIME = 1500; // number of updates until the agent is not sick anymore
 	public static final float BASIC_CHANCE_OF_INFECTION = 0.026f;
-	public static final float RESISTANCE_CHANGE = 0.00001f * 0;
-	public static final int ONE_OUT_OF_WONT_HAVE_SYMPTOMES = 10;
+	public static final boolean UNABLE_VACCINATION = false;
+	public static final float VACCINATION_CHANGE = 0.00001f;
+	public static final boolean UNABLE_NO_SYMPTOMS = true;
+	public static final int ONE_OUT_OF_WONT_HAVE_SYMPTOMS = 10;
 	public static final float RANDOM_SICK_CHANCE = 0.00001f;
 
 	private boolean sick;
 	private int sickDays; // number of days this agent was sick
 	private float resistance;
+
+	// isolation
+	public static final int ISOLATION_LENGTH = 1600;
 	private boolean inIsolation;
+	private int daysInIsolation;
 
 	// contact tracing
-	public static final boolean CAN_BE_CONTACT_TRACED = true;
-	public static final int NUMBER_OF_UPDATES_FOR_ISOLATION = 1;
+	public static final boolean UNABLE_CONTACT_TRACING = true; // unable or disable the feature
+	public static final int NUMBER_OF_CLOSE_CONTACT_UPDATES_FOR_ISOLATION = 1;
+	private boolean isCloseContact;
+	private HashMap<Integer, Integer> potentialCloseContacts;
 
 	// stats
 	private int currentR;
@@ -67,8 +77,7 @@ public class Agent
 		this.setSick(isSick);
 
 		// contact tracing
-		// this.setContactTracing(new HashMap<Integer, Integer>());
-
+		this.setPotentialCloseContacts(new HashMap<Integer, Integer>());
 	}
 
 	public boolean isInfectious()
@@ -76,13 +85,62 @@ public class Agent
 		return (this.isSick() && this.getSickDays() > Agent.INCUBATION_PERIOD);
 	}
 
-	public void update(ArrayList<Agent> infectiousAgents, int boxWidth, int boxHeight, float percentSick)
+	/**
+	 * this method is called when this agent is found to be close contact
+	 */
+	public void reportCloseContact()
+	{
+		this.setCloseContact(true);
+		this.setDaysInIsolation(0);
+	}
+
+	public void update(ArrayList<Agent> allAgents, ArrayList<Agent> infectiousAgents, int boxWidth, int boxHeight,
+			float percentSick)
 	{
 		this.updateInfections(infectiousAgents, percentSick);
 		this.updateResistance();
-		this.updateIsolation();
+		this.updateContactTracing(allAgents); // sick agents follow who they are close contacts of
 
 		this.move(boxWidth, boxHeight);
+	}
+
+	/**
+	 * 
+	 * @param allAgents - list of all the agents in the simulation
+	 */
+	private void updateContactTracing(ArrayList<Agent> allAgents)
+	{
+		// TODO Auto-generated method stub
+		for (Agent agent : allAgents)
+		{
+			if (!agent.isInIsolation())
+			{
+				int agentId = agent.getId();
+				float dist = this.getPosition().dist(agent.getPosition());
+				boolean isItemExist = this.getPotentialCloseContacts().containsKey(agentId);
+				if (dist <= Agent.INFECTION_RADIUS)
+				{
+					if (isItemExist)
+					{
+						int value = this.getPotentialCloseContacts().get(agentId);
+						this.getPotentialCloseContacts().remove(agentId);
+						this.getPotentialCloseContacts().put(agentId, value + 1);
+					}
+					else
+					{
+						this.getPotentialCloseContacts().put(agentId, 1);
+					}
+				}
+				else
+				{
+					if (isItemExist)
+					{
+						this.getPotentialCloseContacts().remove(agentId);
+					}
+				}
+			}
+		}
+
 	}
 
 	/**
@@ -99,7 +157,7 @@ public class Agent
 			this.randomWalk();
 			this.stayInsideBox(boxWidth, boxHeight);
 			
-			if (Agent.CAN_GO_TO_CENTER)
+			if (Agent.UNABLE_GO_TO_CENTER)
 			{
 				if (Math.random() < Agent.GO_TO_CENTER_CHANCE)
 				{
@@ -132,13 +190,14 @@ public class Agent
 		return count;
 	}
 
-	public void postUpdate()
+	public void postUpdate(SimulationBox sim)
 	{
 		if (this.isSick()) // if the agents is sick
 		{
 			this.setPredictedR(this.calculatePredictedR());
 			this.setRealR(this.calculateRealR());
 		}
+		this.updateIsolation(sim);
 	}
 
 	private float calculateRealR()
@@ -147,13 +206,44 @@ public class Agent
 		return (this.getCurrentR() + this.getPredictedR()) / 2.0f;
 	}
 
-	private void updateIsolation()
+	private void updateIsolation(SimulationBox sim)
 	{
-		if (this.isSick() && this.getSickDays() > Agent.SHOW_SYMPTOMS
-				&& this.getId() % Agent.ONE_OUT_OF_WONT_HAVE_SYMPTOMES != 0)
+		// get into isolation
+		if ((this.isSick() && this.getSickDays() > Agent.SHOW_SYMPTOMS
+				&& !(this.getId() % Agent.ONE_OUT_OF_WONT_HAVE_SYMPTOMS == 0 && Agent.UNABLE_NO_SYMPTOMS)) // if having
+																											// symptomes
+		)
+		{
+			this.setInIsolation(true);
+			ArrayList<Integer> closeContactsIds = new ArrayList<Integer>();
+			for (int key : this.getPotentialCloseContacts().keySet())
+			{
+				int value = this.getPotentialCloseContacts().get(key);
+				if (value >= Agent.NUMBER_OF_CLOSE_CONTACT_UPDATES_FOR_ISOLATION)
+				{
+					closeContactsIds.add(key);
+				}
+			}
+			sim.needToGoToIsolation(closeContactsIds);
+			this.getPotentialCloseContacts().clear();
+		}
+
+		if (this.isCloseContact)
 		{
 			this.setInIsolation(true);
 		}
+
+		if (this.inIsolation)
+		{
+			this.daysInIsolation++;
+			if (this.getDaysInIsolation() >= Agent.ISOLATION_LENGTH)
+			{
+				this.setInIsolation(false);
+				this.setCloseContact(false);
+			}
+		}
+
+
 	}
 
 	public void updateInfections(ArrayList<Agent> infectiousAgents, float percentSick)
@@ -197,7 +287,10 @@ public class Agent
 
 	private void updateResistance()
 	{
-		this.resistance += Agent.RESISTANCE_CHANGE;
+		if (Agent.UNABLE_VACCINATION)
+		{
+			this.resistance += Agent.VACCINATION_CHANGE;
+		}
 
 		if (this.getResistance() > 1)
 		{
@@ -223,7 +316,6 @@ public class Agent
 		this.setSick(false);
 		this.setSickDays(0);
 		this.setCurrentR(0);
-		this.setInIsolation(false);
 	}
 
 	private void stayInsideBox(int boxWidth, int boxHeight)
@@ -299,9 +391,9 @@ public class Agent
 
 		if (this.isSick())
 		{
-			if (this.getId() % Agent.ONE_OUT_OF_WONT_HAVE_SYMPTOMES == 0)
+			if (this.getId() % Agent.ONE_OUT_OF_WONT_HAVE_SYMPTOMS == 0)
 			{
-				c = Colors.AGENT_COLOR_NO_SYMPTOMES;
+				c = Colors.AGENT_COLOR_NO_SYMPTOMS;
 
 			}
 			else
@@ -443,5 +535,35 @@ public class Agent
 	public void setGoingToCenter(boolean goingToCenter)
 	{
 		this.goingToCenter = goingToCenter;
+	}
+
+	public boolean isCloseContact()
+	{
+		return isCloseContact;
+	}
+
+	public void setCloseContact(boolean isCloseContact)
+	{
+		this.isCloseContact = isCloseContact;
+	}
+
+	public int getDaysInIsolation()
+	{
+		return daysInIsolation;
+	}
+
+	public void setDaysInIsolation(int daysInIsolation)
+	{
+		this.daysInIsolation = daysInIsolation;
+	}
+
+	public HashMap<Integer, Integer> getPotentialCloseContacts()
+	{
+		return potentialCloseContacts;
+	}
+
+	public void setPotentialCloseContacts(HashMap<Integer, Integer> potentialCloseContacts)
+	{
+		this.potentialCloseContacts = potentialCloseContacts;
 	}
 }
