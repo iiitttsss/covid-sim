@@ -4,15 +4,22 @@ import java.util.ArrayList;
 
 import org.gicentre.utils.stat.XYChart;
 
+import covidSimulation.Colors;
 import covidSimulation.Global;
 import processing.core.PVector;
 
 public class Graph
 {
-	public static void renderWithLib(int x, int y, int w, int h, ArrayList<PVector> values, float maxY)
+	public static void renderWithLib(int x, int y, int w, int h, ArrayList<PVector> values, float maxY, int lineColor)
 	{
 		XYChart lineChart;
 		lineChart = new XYChart(Global.getPro());
+
+		lineChart.setLineColour(lineColor);
+		lineChart.setPointColour(lineColor);
+		lineChart.setPointSize(-7);
+		lineChart.setLineWidth(3);
+		lineChart.setAxisLabelColour(Colors.TEXT_COLOR);
 
 		lineChart.setData(values);
 
@@ -24,10 +31,7 @@ public class Graph
 		// lineChart.setYFormat("$###,###"); // Monetary value in $US
 		// lineChart.setXFormat("0000"); // Year
 
-		// Symbol colours
-		lineChart.setPointColour(Global.getPro().color(180, 50, 50));
-		lineChart.setPointSize(5);
-		lineChart.setLineWidth(2);
+
 
 		int change = 20;
 		lineChart.draw(x + change, y + 0.5f * change, w - change, h - change);

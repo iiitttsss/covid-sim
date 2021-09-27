@@ -12,10 +12,23 @@ public class Timer
 		startTime = Global.getPro().millis();
 	}
 
-	public static void stop()
+	public static void time()
 	{
 		endTime = Global.getPro().millis();
 		int deltaTime = endTime - startTime;
 		System.out.println("timer took: " + deltaTime + " miliseconds");
+	}
+
+	public static void reset()
+	{
+		Timer.time();
+		Timer.start();
+	}
+
+	public static void end()
+	{
+		Timer.time();
+		System.out.println();
+
 	}
 }

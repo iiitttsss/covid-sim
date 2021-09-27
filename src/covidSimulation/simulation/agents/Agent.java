@@ -26,20 +26,24 @@ public class Agent
 	private PVector velocity;
 	// -- move to center
 	private boolean goingToCenter;
-	public static final float GO_TO_CENTER_CHANCE = 0.00002f;
+	public static final float GO_TO_CENTER_CHANCE = 0.0001f;
 	public static final boolean UNABLE_GO_TO_CENTER = true;
 
 	// condition
 	public static final float INFECTION_RADIUS = 10;
 	public static final int INCUBATION_PERIOD = 800; // number of update until infecteous
-	public static final int SHOW_SYMPTOMS = 1000;
+	public static final int SHOW_SYMPTOMS = 1200;
 	public static final int RECOVERY_TIME = 1500; // number of updates until the agent is not sick anymore
-	public static final float BASIC_CHANCE_OF_INFECTION = 0.026f;
+	public static final float BASIC_CHANCE_OF_INFECTION = 0.01f;// 0.026f;
 	public static final boolean UNABLE_VACCINATION = false;
 	public static final float VACCINATION_CHANGE = 0.00001f;
 	public static final boolean UNABLE_NO_SYMPTOMS = true;
 	public static final int ONE_OUT_OF_WONT_HAVE_SYMPTOMS = 10;
-	public static final float RANDOM_SICK_CHANCE = 0.00001f;
+	public static final boolean UNABLE_RANDOM_SICK_CHANCE = true;
+	public static final float RANDOM_SICK_CHANCE = 0.000001f;
+	public static final boolean UNABLE_COMMUNITY_SICK_CHANCE = true;
+	public static final float COMMUNITY_SICK_CHANCE = 0.0001f; // community spread is propotional to the percent of
+																// agents that are sick
 
 	private boolean sick;
 	private int sickDays; // number of days this agent was sick
@@ -52,10 +56,16 @@ public class Agent
 
 	// contact tracing
 	public static final boolean UNABLE_CONTACT_TRACING = true; // unable or disable the feature
-	public static final int NUMBER_OF_CLOSE_CONTACT_UPDATES_FOR_ISOLATION = 1;
+	// (1-(1-p)^n)*100 -- the chanse to get an infection given the basic infectius
+	// rate (p) and the number of updates in range (n)
+	public static final int NUMBER_OF_CLOSE_CONTACT_UPDATES_FOR_ISOLATION = 25;
 	private boolean isCloseContact;
 	private HashMap<Integer, Integer> potentialCloseContacts;
 
+	// testing
+	public static final boolean UNABLE_TESTING = true;
+	public static final float TESTING_CHANCE = 0.0001f; // the chance of an agent to be tested in each itiration of the
+														// simulation
 	// stats
 	private int currentR;
 	private float predictedR;
@@ -78,11 +88,16 @@ public class Agent
 
 		// contact tracing
 		this.setPotentialCloseContacts(new HashMap<Integer, Integer>());
+
+		for (int i = 0; i < 3000; i++)
+		{
+			this.move(boxWidth, boxHeight);
+		}
 	}
 
 	public boolean isInfectious()
 	{
-		return (this.isSick() && this.getSickDays() > Agent.INCUBATION_PERIOD);
+		return (this.isSick() && this.getSickDays() > Agent.INCUBATION_PERIOD && !this.isInIsolation());
 	}
 
 	/**
@@ -98,10 +113,27 @@ public class Agent
 			float percentSick)
 	{
 		this.updateInfections(infectiousAgents, percentSick);
+		this.updateTesting();
 		this.updateResistance();
 		this.updateContactTracing(allAgents); // sick agents follow who they are close contacts of
 
 		this.move(boxWidth, boxHeight);
+	}
+
+	private void updateTesting()
+	{
+		if (Agent.UNABLE_TESTING)
+		{
+			if (Math.random() <= Agent.TESTING_CHANCE)
+			{
+				if (this.isSick())
+				{
+					// this.setSickDays(Agent.SHOW_SYMPTOMS);
+					this.setInIsolation(true);
+
+				}
+			}
+		}
 	}
 
 	/**
@@ -278,9 +310,20 @@ public class Agent
 				}
 			}
 
-			if (Math.random() < Agent.RANDOM_SICK_CHANCE /* * percentSick */)
+			if (Agent.UNABLE_COMMUNITY_SICK_CHANCE)
 			{
-				this.setSick(true);
+				if (Math.random() < Agent.COMMUNITY_SICK_CHANCE * percentSick)
+				{
+					this.setSick(true);
+				}
+			}
+
+			if (Agent.UNABLE_RANDOM_SICK_CHANCE)
+			{
+				if (Math.random() < Agent.RANDOM_SICK_CHANCE)
+				{
+					this.setSick(true);
+				}
 			}
 		}
 	}

@@ -4,6 +4,7 @@ package covidSimulation;
 import covidSimulation.simulation.SimulationBox;
 import covidSimulation.simulation.stats.Graph;
 import processing.core.*;
+import util.Timer;
 
 public class Main extends PApplet
 {
@@ -22,7 +23,9 @@ public class Main extends PApplet
 	@Override
 	public void settings()
 	{
-		size(3200, 1500);
+		size(3200, 1400);
+		this.noSmooth();
+
 		// size(1600, 1000);
 
 	}
@@ -30,9 +33,15 @@ public class Main extends PApplet
 	@Override
 	public void setup()
 	{
+		frameRate(400);
+
 		System.out.println("start program");
 		Global.setPro(this);
 		sim = new SimulationBox(simSize, simSize, numberOfAgents, numberOfSickAgents);
+//		for (int i = 0; i < 1000; i++)
+//		{
+//			sim.updateMove();
+//		}
 	}
 
 	@Override
@@ -41,9 +50,11 @@ public class Main extends PApplet
 		update();
 		render();
 
+
+
 		// if there are no more sick agents - stop the simulation
 		if (sim.getStatsCollector().getSickAgents().get(sim.getStatsCollector().getSickAgents().size() - 1).y == 0
-				&& sim.getNumberOfUpdates() > 3000)
+				&& sim.getNumberOfUpdates() > 30000)
 		{
 			noLoop();
 			System.out.println("simulation stopped - no more sick agents");
@@ -52,7 +63,7 @@ public class Main extends PApplet
 
 	private void update()
 	{
-		for (int i = 0; i < 2; i++)
+		for (int i = 0; i < 3; i++)
 		{
 			sim.updateMove();
 			// sim.updateRoom();
@@ -61,35 +72,40 @@ public class Main extends PApplet
 
 	private void render()
 	{
-		background(150);
+		background(Colors.SIMULATION_BACKGROUND_COLOR);
 
-		image(sim.render(), 0, 0);
-		frame(0, 0, simSize, simSize);
-
+		image(sim.render(), 100, 150);
+		frame(100, 150, simSize, simSize);
 		// image(sim.getStatsCollector().render(), 800, 0);
 
 		textSize(10);
-		Graph.renderWithLib(simSize, 0, simSize, simSize / 2, sim.getStatsCollector().getSickAgents(), Float.NaN);
-		frame(simSize, 0, simSize, simSize / 2);
+		Graph.renderWithLib(150 + simSize, 150, simSize, simSize / 2, sim.getStatsCollector().getSickAgents(),
+				Float.NaN,
+				Colors.AGENT_COLOR_SICK);
+		frame(150 + simSize, 150, simSize, simSize / 2);
 		
-		Graph.renderWithLib(simSize, simSize / 2, simSize, simSize / 2, sim.getStatsCollector().getPredictedR(), 10);
+		Graph.renderWithLib(150 + simSize, 150 + simSize / 2, simSize, simSize / 2,
+				sim.getStatsCollector().getPredictedR(),
+				10,
+				Colors.AGENT_COLOR_SICK);
+		frame(150 + simSize, 150 + simSize / 2, simSize, simSize / 2);
+
 		// Graph.renderWithLib(800, 400, 800, 400,
 		// sim.getStatsCollector().getCurrentR(), 10);
 
-
-
+		fill(Colors.TEXT_COLOR);
 		textSize(100);
-		text(sim.getCurrentR(), simSize, simSize + 70);
-		text(sim.getPredictedR(), simSize, simSize + 170);
-
+		text("pandemic simulation", 100, 100);
+		text(sim.getCurrentR(), 200 + simSize * 2, 250);
+		text(sim.getPredictedR(), 200 + simSize * 2, 350);
 	}
 
 	private void frame(int x, int y, int w, int h)
 	{
 		int off = 0;
 		noFill();
-		stroke(255);
-		strokeWeight(5);
+		stroke(Colors.TEXT_COLOR);
+		strokeWeight(3);
 		rect(x + off, y + off, w - off, h - off);
 	}
 }

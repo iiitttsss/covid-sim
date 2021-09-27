@@ -15,7 +15,7 @@ public class SimulationBox
 	private StatsCollector statsCollector;
 
 	private int numberOfUpdates;
-	private final int collectDataEveryNumberOfUpdates = 30; // how many updates before collect data
+	private final int collectDataEveryNumberOfUpdates = 1; // how many updates before collect data
 
 	private float currentR;
 	private float predictedR;
@@ -152,7 +152,7 @@ public class SimulationBox
 	{
 		if (infectiousAgents.size() == 0) // if there are no infectious agents - return 0
 		{
-			return 1;
+			return 0;
 		}
 
 		float rSum = 0;
@@ -186,6 +186,7 @@ public class SimulationBox
 	{
 		this.pg.beginDraw();
 		this.pg.background(Colors.SIMULATION_BACKGROUND_COLOR);
+
 
 		for (int i = 0; i < agents.size(); i++)
 		{
