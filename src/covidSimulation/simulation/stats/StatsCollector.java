@@ -23,6 +23,12 @@ public class StatsCollector
 
 	private ArrayList<PVector> numberOfInteractions;
 
+	// next update
+	// private ArrayList<PVector> sickAgentsAverage;
+	// private final int numberOfDays = 7;
+	// private float[] lastNDays;
+	// private int currentDay;
+
 
 	public StatsCollector()
 	{

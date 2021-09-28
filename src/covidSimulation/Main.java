@@ -4,13 +4,12 @@ package covidSimulation;
 import covidSimulation.simulation.SimulationBox;
 import covidSimulation.simulation.stats.Graph;
 import processing.core.*;
-import util.Timer;
 
 public class Main extends PApplet
 {
 
 	private SimulationBox sim;
-	int numberOfAgents = 1000;
+	int numberOfAgents = 800;
 	int numberOfSickAgents = 0;
 	final int simSize = 1100;
 
@@ -63,7 +62,7 @@ public class Main extends PApplet
 
 	private void update()
 	{
-		for (int i = 0; i < 3; i++)
+		for (int i = 0; i < 2; i++)
 		{
 			sim.updateMove();
 			// sim.updateRoom();
