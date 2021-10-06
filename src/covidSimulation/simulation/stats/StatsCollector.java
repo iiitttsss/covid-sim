@@ -12,6 +12,7 @@ public class StatsCollector
 {
 	private PGraphics pg;
 	private ArrayList<DailyStats> stats;
+	private static final int collectDataEveryNumberOfUpdates = 1; // how many updates before collect data
 
 	private ArrayList<PVector> totalAgents;
 	private ArrayList<PVector> sickAgents;
@@ -23,11 +24,17 @@ public class StatsCollector
 
 	private ArrayList<PVector> numberOfInteractions;
 
-	// next update
-	// private ArrayList<PVector> sickAgentsAverage;
-	// private final int numberOfDays = 7;
-	// private float[] lastNDays;
-	// private int currentDay;
+	private final static int numberOfDays = 700;
+	private int currentDay;
+
+	private ArrayList<PVector> sickAgentsAverage;
+	private float[] sickAgentsLastNDays;
+
+	private ArrayList<PVector> predictedRAverage;
+	private float[] predictedRLastNDays;
+
+	private ArrayList<PVector> numberOfInteractionsAverage;
+	private float[] numberOfInteractionsLastNDays;
 
 
 	public StatsCollector()
@@ -45,11 +52,46 @@ public class StatsCollector
 
 		this.setNumberOfInteractions(new ArrayList<PVector>());
 
+		// sickAgents
+		this.setSickAgentsAverage(new ArrayList<PVector>());
+		this.setSickAgentsLastNDays(new float[StatsCollector.numberOfDays]);
+		// predictedR
+		this.setPredictedRAverage(new ArrayList<PVector>());
+		this.setPredictedRLastNDays(new float[StatsCollector.numberOfDays]);
+		// numberOfInteractions
+		this.setNumberOfInteractionsAverage(new ArrayList<PVector>());
+		this.setNumberOfInteractionsLastNDays(new float[StatsCollector.numberOfDays]);
+	}
 
+	private void addVectorToAverage(ArrayList<PVector> arr, PVector value, float[] lastNDays)
+	{
+		lastNDays[this.getCurrentDay()] = value.y;
+		this.currentDay++;
+		this.currentDay %= StatsCollector.numberOfDays;
+		
+		float avg = StatsCollector.calculateArrayAverage(lastNDays);
+		
+		PVector avgVector = new PVector(value.x, avg);
+		this.addVector(arr, avgVector);
+	}
+
+	public static float calculateArrayAverage(float[] arr)
+	{
+		float sum = 0;
+		for (float n : arr)
+		{
+			sum += n;
+		}
+		return sum / arr.length;
 	}
 
 	private void addVector(ArrayList<PVector> arr, PVector value)
 	{
+		if (value.x % StatsCollector.collectDataEveryNumberOfUpdates != 0)
+		{
+			return;
+		}
+
 		if (arr.size() == 0)
 		{
 			arr.add(value);
@@ -113,13 +155,17 @@ public class StatsCollector
 
 		this.addVector(this.getTotalAgents(), totalAgents);
 		this.addVector(this.getSickAgents(), sickAgents);
+		this.addVectorToAverage(sickAgentsAverage, sickAgents, this.sickAgentsLastNDays);
 		this.addVector(this.getHealthyAgents(), healthyAgents);
 
 		this.addVector(this.getCurrentR(), currentR);
 		this.addVector(this.getPredictedR(), predictedR);
+		this.addVectorToAverage(this.predictedRAverage, predictedR, this.predictedRLastNDays);
+
 		this.addVector(this.getCurrentR(), realR);
 
-		this.addVector(getNumberOfInteractions(), numberOfInteractions);
+		this.addVector(this.getNumberOfInteractions(), numberOfInteractions);
+		this.addVectorToAverage(this.numberOfInteractions, numberOfInteractions, this.numberOfInteractionsLastNDays);
 
 	}
 
@@ -282,6 +328,81 @@ public class StatsCollector
 	public void setNumberOfInteractions(ArrayList<PVector> numberOfInteractions)
 	{
 		this.numberOfInteractions = numberOfInteractions;
+	}
+
+	public ArrayList<PVector> getSickAgentsAverage()
+	{
+		return sickAgentsAverage;
+	}
+
+	public void setSickAgentsAverage(ArrayList<PVector> sickAgentsAverage)
+	{
+		this.sickAgentsAverage = sickAgentsAverage;
+	}
+
+	public int getNumberOfDays()
+	{
+		return numberOfDays;
+	}
+
+	public float[] getSickAgentsLastNDays()
+	{
+		return sickAgentsLastNDays;
+	}
+
+	public void setSickAgentsLastNDays(float[] lastNDays)
+	{
+		this.sickAgentsLastNDays = lastNDays;
+	}
+
+	public int getCurrentDay()
+	{
+		return currentDay;
+	}
+
+	public void setCurrentDay(int currentDay)
+	{
+		this.currentDay = currentDay;
+	}
+
+	public ArrayList<PVector> getPredictedRAverage()
+	{
+		return predictedRAverage;
+	}
+
+	public void setPredictedRAverage(ArrayList<PVector> predictedRAverage)
+	{
+		this.predictedRAverage = predictedRAverage;
+	}
+
+	public float[] getPredictedRLastNDays()
+	{
+		return predictedRLastNDays;
+	}
+
+	public void setPredictedRLastNDays(float[] predictedRAgents)
+	{
+		this.predictedRLastNDays = predictedRAgents;
+	}
+
+	public ArrayList<PVector> getNumberOfInteractionsAverage()
+	{
+		return numberOfInteractionsAverage;
+	}
+
+	public void setNumberOfInteractionsAverage(ArrayList<PVector> numberOfInteractionsAverage)
+	{
+		this.numberOfInteractionsAverage = numberOfInteractionsAverage;
+	}
+
+	public float[] getNumberOfInteractionsLastNDays()
+	{
+		return numberOfInteractionsLastNDays;
+	}
+
+	public void setNumberOfInteractionsLastNDays(float[] numberOfInteractionsLastNDays)
+	{
+		this.numberOfInteractionsLastNDays = numberOfInteractionsLastNDays;
 	}
 
 }

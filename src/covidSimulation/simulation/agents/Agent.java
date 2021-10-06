@@ -26,18 +26,18 @@ public class Agent
 	private PVector velocity;
 	// -- move to center
 	private boolean goingToCenter;
-	public static final float GO_TO_CENTER_CHANCE = 0.0001f;
-	public static final boolean UNABLE_GO_TO_CENTER = false;
+	public static final float GO_TO_CENTER_CHANCE = 0.0002f;
+	public static final boolean UNABLE_GO_TO_CENTER = true;
 
 	// condition
 	public static final float INFECTION_RADIUS = 10;
 	public static final int INCUBATION_PERIOD = 800; // number of update until infecteous
 	public static final int SHOW_SYMPTOMS = 1200;
 	public static final int RECOVERY_TIME = 1500; // number of updates until the agent is not sick anymore
-	public static final float BASIC_CHANCE_OF_INFECTION = 0.026f;// 0.026f;
+	public static final float BASIC_CHANCE_OF_INFECTION = 0.01f;// 0.026f;
 	public static final boolean UNABLE_VACCINATION = false;
 	public static final float VACCINATION_CHANGE = 0.00001f;
-	public static final boolean UNABLE_NO_SYMPTOMS = true;
+	public static final boolean UNABLE_NO_SYMPTOMS = false;
 	public static final int ONE_OUT_OF_WONT_HAVE_SYMPTOMS = 10;
 	public static final int ONE_OUT_OF_WONT_HAVE_SYMPTOMS_OFFSET = (int) (ONE_OUT_OF_WONT_HAVE_SYMPTOMS
 			* Math.random());
@@ -57,7 +57,7 @@ public class Agent
 	private int daysInIsolation;
 
 	// contact tracing
-	public static final boolean UNABLE_CONTACT_TRACING = true; // unable or disable the feature
+	public static final boolean UNABLE_CONTACT_TRACING = false; // unable or disable the feature
 	// (1-(1-p)^n)*100 -- the chanse to get an infection given the basic infectius
 	// rate (p) and the number of updates in range (n)
 	public static final int NUMBER_OF_CLOSE_CONTACT_UPDATES_FOR_ISOLATION = 25;
@@ -71,8 +71,8 @@ public class Agent
 
 	// social distancing
 	public static final boolean UNABLE_SOCIAL_DISTANCING = true;
-	public static final float SOCIAL_DISTANCING_RADIUS = 3000f;
-	public static final float SOCIAL_DISTANCING_WEIGHT = 10000.1f;
+	public static final float SOCIAL_DISTANCING_RADIUS = 30f;
+	public static final float SOCIAL_DISTANCING_WEIGHT = 0.5f;
 	public static final int ONE_OUT_OF_WONT_PRACTICE_SOCIAL_DISTANCING = 100;
 	public static final int ONE_OUT_OF_WONT_PRACTICE_SOCIAL_DISTANCING_OFFSET = (int) (ONE_OUT_OF_WONT_PRACTICE_SOCIAL_DISTANCING
 			* Math.random());

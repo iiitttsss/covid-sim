@@ -78,14 +78,15 @@ public class Main extends PApplet
 		// image(sim.getStatsCollector().render(), 800, 0);
 
 		textSize(10);
+//		Graph.renderWithLib(150 + simSize, 150, simSize, simSize / 2, sim.getStatsCollector().getSickAgents(),
+//				Float.NaN, Colors.AGENT_COLOR_SICK);
 		Graph.renderWithLib(150 + simSize, 150, simSize, simSize / 2, sim.getStatsCollector().getSickAgents(),
-				Float.NaN,
-				Colors.AGENT_COLOR_SICK);
+				Float.NaN, Colors.AGENT_COLOR_SICK);
 		frame(150 + simSize, 150, simSize, simSize / 2);
 		
 		Graph.renderWithLib(150 + simSize, 150 + simSize / 2, simSize, simSize / 2,
-				sim.getStatsCollector().getPredictedR(),
-				10,
+				sim.getStatsCollector().getPredictedRAverage(),
+				5,
 				Colors.AGENT_COLOR_SICK);
 		frame(150 + simSize, 150 + simSize / 2, simSize, simSize / 2);
 

@@ -15,7 +15,6 @@ public class SimulationBox
 	private StatsCollector statsCollector;
 
 	private int numberOfUpdates;
-	private final int collectDataEveryNumberOfUpdates = 1; // how many updates before collect data
 
 	private float currentR;
 	private float predictedR;
@@ -31,6 +30,7 @@ public class SimulationBox
 		this.setAgents(new ArrayList<Agent>());
 
 		// add patient zero
+		Agent.numberOfAgents = 0;
 		for (int i = 0; i < numberOfSickAgents; i++)
 		{
 			this.agents.add(new Agent(true, this.getRenderBox().width, this.getRenderBox().height));
@@ -77,10 +77,8 @@ public class SimulationBox
 
 	private void update(ArrayList<Agent> infectiousAgents)
 	{
-		if (this.getNumberOfUpdates() % collectDataEveryNumberOfUpdates == 0)
-		{
-			this.statsCollector.collectData(this);
-		}
+
+		this.statsCollector.collectData(this);
 
 		this.setCurrentR(this.calculateCurrentR(infectiousAgents));
 
